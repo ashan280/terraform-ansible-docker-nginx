@@ -1,0 +1,81 @@
+---
+- name: Deploy Nginx container on EC2
+  hosts: web
+  become: yes
+  gather_facts: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.8
+
+  tasks:
+    #################################################################
+    # 1. Install required Python packages for Docker modules
+    #################################################################
+    - name: Install Python Docker dependencies globally
+      pip:
+        name:
+          - docker
+          - requests
+          - PyYAML
+        executable: /usr/bin/pip3.8
+        state: present
+
+    #################################################################
+    # 2. Fix Python library version compatibility on Amazon Linux 2
+    #################################################################
+    - name: Fix Python library compatibility
+      command: >
+        /usr/bin/pip3.8 install "urllib3<2.0" "requests<2.30" --force-reinstall
+
+    #################################################################
+    # 3. Ensure Docker service is running
+    #################################################################
+    - name: Ensure Docker service is installed and started
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    #################################################################
+    # 4. Create web root on EC2
+    #################################################################
+    - name: Create directory for Nginx HTML content
+      file:
+        path: /home/ec2-user/nginx-html
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: '0755'
+
+    #################################################################
+    # 5. Copy local HTML files from repo to EC2 web root
+    #################################################################
+    - name: Copy local HTML files to EC2
+      copy:
+        src: ../html/
+        dest: /home/ec2-user/nginx-html/
+        owner: ec2-user
+        group: ec2-user
+        mode: '0644'
+
+    #################################################################
+    # 6. Run Nginx container with volume mount
+    #################################################################
+    - name: Run Nginx container with mounted HTML directory
+      docker_container:
+        name: nginx_web
+        image: nginx:latest
+        state: started
+        restart_policy: always
+        ports:
+          - "80:80"
+        volumes:
+          - /home/ec2-user/nginx-html:/usr/share/nginx/html
+
+    #################################################################
+    # 7. Display success message
+    #################################################################
+    - name: Display deployment success message
+      debug:
+        msg: >
+          🚀 Nginx deployed successfully! 
+          Visit http://{{ hostvars[inventory_hostname].ansible_host | default(inventory_hostname) }}

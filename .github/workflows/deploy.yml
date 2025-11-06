@@ -1,0 +1,104 @@
+name: CI/CD - Terraform + Ansible (AWS EC2 + Docker + Nginx)
+
+on:
+  push:
+    branches:
+      - main  # Trigger workflow on pushes to the main branch
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Web App to AWS EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      ###########################################################################
+      # 1. Checkout repository
+      ###########################################################################
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      ###########################################################################
+      # 2. Setup Terraform
+      ###########################################################################
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      ###########################################################################
+      # 3. Configure AWS Credentials
+      ###########################################################################
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      ###########################################################################
+      # 4. Initialize & Apply Terraform (idempotent — will not recreate EC2)
+      ###########################################################################
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply (auto-approve)
+        run: terraform apply -auto-approve
+
+      ###########################################################################
+      # 5. Get EC2 Instance Public IP from Terraform output
+      ###########################################################################
+      - name: Extract EC2 instance public IP
+        id: get_ip
+        run: |
+          EC2_IP=$(terraform output -raw instance_public_ip)
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "EC2 Public IP: $EC2_IP"
+
+      ###########################################################################
+      # 6. Setup Python & Ansible
+      ###########################################################################
+      - name: Setup Python & Install Ansible
+        run: |
+          sudo apt update -y
+          sudo apt install -y python3 python3-pip
+          pip3 install ansible boto3 botocore
+
+      ###########################################################################
+      # 7. Prepare Ansible inventory with EC2 IP dynamically
+      ###########################################################################
+      - name: Generate Ansible inventory
+        run: |
+          sudo apt install -y gettext-base
+          envsubst < ansible/inventory.tpl > ansible/inventory.ini
+          echo "Generated Ansible inventory:"
+          cat ansible/inventory.ini
+
+      ###########################################################################
+      # 8. Copy SSH key from GitHub Secrets (for connecting to EC2)
+      ###########################################################################
+      - name: Setup SSH key for Ansible
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > Network.pem
+          chmod 400 Network.pem
+
+      ###########################################################################
+      # 9. Run Ansible playbooks
+      ###########################################################################
+      - name: Install Docker on EC2
+        run: |
+          ansible-playbook -i ansible/inventory.ini ansible/install-docker.yml
+
+      - name: Deploy Nginx container and HTML site
+        run: |
+          ansible-playbook -i ansible/inventory.ini ansible/deploy-nginx.yml
+
+      ###########################################################################
+      # 10. Show final deployment info
+      ###########################################################################
+      - name: Show Deployment Info
+        run: |
+          echo "Deployment Completed Successfully!"
+          echo "Access your site at: http://${{ env.EC2_IP }}"

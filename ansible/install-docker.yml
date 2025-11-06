@@ -1,0 +1,43 @@
+---
+- name: Install Docker on Amazon Linux 2
+  hosts: web
+  become: yes
+  gather_facts: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.8
+
+  tasks:
+    #################################################################
+    # 1. Enable and install Docker
+    #################################################################
+    - name: Enable Docker via amazon-linux-extras
+      shell: "amazon-linux-extras install docker -y"
+
+    #################################################################
+    # 2. Ensure Docker service is started and enabled
+    #################################################################
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    #################################################################
+    # 3. Add ec2-user to the Docker group
+    #################################################################
+    - name: Add ec2-user to Docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    #################################################################
+    # 4. Confirm Docker installation
+    #################################################################
+    - name: Verify Docker installation
+      command: docker --version
+      register: docker_version_output
+
+    - name: Display Docker version
+      debug:
+        msg: "{{ docker_version_output.stdout }}"

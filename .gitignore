@@ -1,0 +1,19 @@
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+crash.log
+*.tfvars
+
+# Python/Ansible cache
+__pycache__/
+*.retry
+
+# Keys
+Network.pem
+*.pem
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
