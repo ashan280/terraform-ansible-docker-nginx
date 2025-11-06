@@ -5,14 +5,263 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Automated Cloud Deployment</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  
+  <style>
+    /* 1. Global Reset & Root Variables */
+    :root {
+      --primary-blue: #007bff;
+      --dark-text: #212529;
+      --body-text: #495057;
+      --light-gray: #f8f9fa;
+      --border-color: #e9ecef;
+      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #ffffff;
+      color: var(--body-text);
+      line-height: 1.6;
+    }
+
+    /* 2. Reusable Container */
+    .container {
+      width: 90%;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* 3. Header / Navbar */
+    .navbar {
+      background-color: #ffffff;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background-color: rgba(255, 255, 255, 0.9);
+    }
+
+    .navbar .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--dark-text);
+      text-decoration: none;
+    }
+
+    .logo span {
+      color: var(--primary-blue);
+    }
+
+    .navbar nav ul {
+      display: flex;
+      list-style: none;
+      gap: 1.5rem;
+    }
+
+    .navbar nav a {
+      text-decoration: none;
+      color: var(--body-text);
+      font-weight: 500;
+      font-size: 1rem;
+      transition: color 0.3s ease;
+    }
+
+    .navbar nav a:hover {
+      color: var(--primary-blue);
+    }
+
+    .navbar nav a.active {
+      color: var(--primary-blue);
+      font-weight: 600;
+      border-bottom: 2px solid var(--primary-blue);
+      padding-bottom: 4px;
+    }
+
+    /* 4. Hero Section */
+    .hero {
+      position: relative;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      min-height: 70vh; /* Made hero a bit taller for 'Home' */
+      color: #ffffff;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5); /* Simple overlay */
+      z-index: 1;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 2rem;
+    }
+
+    .hero h2 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      font-weight: 300;
+      max-width: 600px;
+      margin-bottom: 2rem;
+    }
+
+    /* 5. Button Styles */
+    .btn-primary, .btn-secondary {
+      display: inline-block;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 0.75rem 1.75rem;
+      border-radius: 50px; /* Pill shape */
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-blue);
+      color: #ffffff;
+      border: 2px solid var(--primary-blue);
+    }
+
+    .btn-primary:hover {
+      background-color: #0069d9;
+      border-color: #0069d9;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--dark-text);
+      border: 2px solid var(--dark-text);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--dark-text);
+      color: #ffffff;
+      transform: translateY(-2px);
+    }
+
+    /* 6. Features Section */
+    .features {
+      padding: 5rem 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2.5rem;
+      text-align: center;
+    }
+
+    .feature h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--dark-text);
+      margin-bottom: 0.75rem;
+    }
+
+    .feature p {
+      font-size: 1rem;
+    }
+
+    /* 7. Call to Action (CTA) Section */
+    .cta {
+      padding: 4rem 2rem;
+      background-color: var(--light-gray);
+      text-align: center;
+    }
+
+    .cta h3 {
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--dark-text);
+      margin-bottom: 1.5rem;
+    }
+    
+    /* Re-style btn-secondary for dark text on light background */
+    .cta .btn-secondary {
+       color: var(--dark-text);
+       border-color: var(--dark-text);
+    }
+    .cta .btn-secondary:hover {
+       background-color: var(--dark-text);
+       color: #ffffff;
+    }
+
+
+    /* 8. Footer */
+    footer {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      background-color: #ffffff;
+      border-top: 1px solid var(--border-color);
+      color: #888;
+      font-size: 0.9rem;
+    }
+
+    /* 9. Responsive Adjustments */
+    @media (max-width: 768px) {
+      .hero h2 {
+        font-size: 2.25rem;
+      }
+      .hero p {
+        font-size: 1.1rem;
+      }
+      .features {
+        grid-template-columns: 1fr; /* Stack features */
+        gap: 2.5rem;
+        padding: 3rem 0;
+      }
+      .cta h3 {
+        font-size: 1.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .navbar .container {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .navbar nav ul {
+        gap: 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Header -->
   <header class="navbar">
     <div class="container">
-      <h1 class="logo">Cloud<span>Deploy</span></h1>
+      <a href="index.html" class="logo">Cloud<span>Deploy</span></a>
       <nav>
         <ul>
           <li><a href="index.html" class="active">Home</a></li>
@@ -22,7 +271,6 @@
     </div>
   </header>
 
-  <!-- Hero Section -->
   <section class="hero" style="background-image: url('https://webimg.trueidc.com/www/img_service_category/6-image_en-1452.jpg');">
     <div class="overlay"></div>
     <div class="hero-content">
@@ -32,7 +280,6 @@
     </div>
   </section>
 
-  <!-- Features Section -->
   <section class="features container">
     <div class="feature">
       <h3>Infrastructure as Code</h3>
@@ -48,13 +295,11 @@
     </div>
   </section>
 
-  <!-- Call to Action -->
   <section class="cta">
     <h3>Ready to automate your cloud journey?</h3>
     <a href="about.html" class="btn-secondary">Discover How</a>
   </section>
 
-  <!-- Footer -->
   <footer>
     <p>© 2025 Cloud Automation | Powered by Terraform · Ansible · Docker · GitHub</p>
   </footer>
