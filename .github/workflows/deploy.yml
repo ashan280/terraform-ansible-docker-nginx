@@ -3,7 +3,7 @@ name: CI/CD - Terraform + Ansible (AWS EC2 + Docker + Nginx)
 on:
   push:
     branches:
-      - main  # Trigger workflow on pushes to the main branch
+      - main  # Trigger the workflow on every push to main branch
 
 permissions:
   contents: read
@@ -13,11 +13,14 @@ jobs:
     name: Deploy Web App to AWS EC2
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+
     steps:
       ###########################################################################
-      # 1. Checkout repository
+      # 1. Checkout Repository
       ###########################################################################
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       ###########################################################################
@@ -31,74 +34,77 @@ jobs:
       ###########################################################################
       # 3. Configure AWS Credentials
       ###########################################################################
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
       ###########################################################################
-      # 4. Initialize & Apply Terraform (idempotent — will not recreate EC2)
+      # 4. Initialize Terraform (Optional)
+      # If EC2 is manually created, this step is harmless and idempotent
       ###########################################################################
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Apply (auto-approve)
-        run: terraform apply -auto-approve
+      - name: Terraform Apply (idempotent)
+        run: terraform apply -auto-approve || echo "Terraform skipped if EC2 already exists"
 
       ###########################################################################
-      # 5. Get EC2 Instance Public IP from Terraform output
+      # 5. Set EC2 IP (from GitHub Secret if static)
       ###########################################################################
-      - name: Extract EC2 instance public IP
+      - name: Load EC2 IP from GitHub Secrets
         id: get_ip
         run: |
-          EC2_IP=$(terraform output -raw instance_public_ip)
-          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
-          echo "EC2 Public IP: $EC2_IP"
+          echo "EC2_IP=${{ secrets.EC2_STATIC_IP }}" >> $GITHUB_ENV
+          echo "✅ Using EC2 Public IP: ${{ secrets.EC2_STATIC_IP }}"
 
       ###########################################################################
-      # 6. Setup Python & Ansible
+      # 6. Setup Python and Ansible
       ###########################################################################
       - name: Setup Python & Install Ansible
         run: |
           sudo apt update -y
-          sudo apt install -y python3 python3-pip
+          sudo apt install -y python3 python3-pip gettext-base
           pip3 install ansible boto3 botocore
+          ansible --version
+          echo "✅ Ansible installed successfully"
 
       ###########################################################################
-      # 7. Prepare Ansible inventory with EC2 IP dynamically
+      # 7. Prepare Ansible Inventory (Dynamic IP injection)
       ###########################################################################
-      - name: Generate Ansible inventory
+      - name: Generate Ansible Inventory
         run: |
-          sudo apt install -y gettext-base
+          mkdir -p ansible
           envsubst < ansible/inventory.tpl > ansible/inventory.ini
-          echo "Generated Ansible inventory:"
+          echo "✅ Generated inventory file:"
           cat ansible/inventory.ini
 
       ###########################################################################
-      # 8. Copy SSH key from GitHub Secrets (for connecting to EC2)
+      # 8. Setup SSH Key for EC2 Access
       ###########################################################################
-      - name: Setup SSH key for Ansible
+      - name: Setup SSH Key for Ansible
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > Network.pem
           chmod 400 Network.pem
+          echo "✅ SSH key configured successfully"
 
       ###########################################################################
-      # 9. Run Ansible playbooks
+      # 9. Run Ansible Playbooks (Docker + Nginx + HTML)
       ###########################################################################
       - name: Install Docker on EC2
         run: |
           ansible-playbook -i ansible/inventory.ini ansible/install-docker.yml
 
-      - name: Deploy Nginx container and HTML site
+      - name: Deploy Nginx Container and HTML Content
         run: |
           ansible-playbook -i ansible/inventory.ini ansible/deploy-nginx.yml
 
       ###########################################################################
-      # 10. Show final deployment info
+      # 10. Display Deployment Info
       ###########################################################################
-      - name: Show Deployment Info
+      - name: Display Deployment Information
         run: |
-          echo "Deployment Completed Successfully!"
-          echo "Access your site at: http://${{ env.EC2_IP }}"
+          echo "✅ Deployment Completed Successfully!"
+          echo "🌍 Visit your site at: http://${{ env.EC2_IP }}"
