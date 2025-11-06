@@ -88,6 +88,7 @@ jobs:
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > Network.pem
           chmod 400 Network.pem
+          cat Network.pem
           echo "✅ SSH key configured successfully"
 
       ###########################################################################
