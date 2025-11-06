@@ -17,3 +17,12 @@ Network.pem
 .DS_Store
 .vscode/
 .idea/
+
+
+echo "# terraform-ansible-docker-nginx" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/ashan280/terraform-ansible-docker-nginx.git
+git push -u origin main
